@@ -7,7 +7,7 @@
     {
       "name": "whitehat",
       "source": "./plugins/whitehat",
-      "description": "Scope guard, edit-time security gate, and audit/pentest skills for authorized security work."
+      "description": "Authorized security work with Claude Code: engagement scope guard, edit-time security gate, a parallel full-audit workflow with skeptic verification, and deterministic report generation."
     }
   ],
   "description": "Claude Code plugins for authorized security work: scope guard, edit-time security gate, audit and pentest skills."
