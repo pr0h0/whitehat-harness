@@ -1,0 +1,75 @@
+{
+  "meta": {
+    "project_name": "SampleApp",
+    "organization": "Example Corp",
+    "audit_date": "2026-07-23",
+    "date_reported": "22/07/2026",
+    "auditor": "Senior Application Security Engineer (deep-dive; SAST + manual taint analysis)",
+    "scope": ["backend — Node.js API", "frontend — React admin"],
+    "summary_paragraph": "Overall posture is mixed: strong webhook signature handling, but a critical unauthenticated signing endpoint and weak secret management raise the risk profile.",
+    "area_assessments": [
+      {"area": "Secrets & Env Vars", "result": "Fix", "summary": "A live secret is committed and shipped to the browser."},
+      {"area": "Auth & Authorization", "result": "Fix", "summary": "An unauthenticated endpoint signs discount tokens the checkout trusts."},
+      {"area": "Session Security", "result": "Good", "summary": "Session JWT verification is correct."},
+      {"area": "CORS", "result": "Passed", "summary": "No permissive origins found."},
+      {"area": "Database", "result": "Good", "summary": "SQLi sinks exist in code but are runtime-mitigated."},
+      {"area": "Input Validation", "result": "Fix", "summary": "Client-supplied pricing is trusted server-side."},
+      {"area": "Third-Party Integrations", "result": "Good", "summary": "Payment webhook signatures verified before processing."},
+      {"area": "Dependencies", "result": "Fix", "summary": "12 npm advisories, 2 high."},
+      {"area": "Rate Limiting", "result": "Fix", "summary": "2FA endpoint has no rate limit."},
+      {"area": "DoS", "result": "Good", "summary": "Request bodies are bounded."},
+      {"area": "Information Disclosure", "result": "Fix", "summary": "Debug dashboard exposed on a non-production host."}
+    ],
+    "verification_changes": [
+      {"change": "Downgraded High to Low", "findings": "#4", "reason": "Model applies a global tenant_id scope, so not cross-tenant exploitable."}
+    ],
+    "verified_safe": ["Payment webhook signature (constant-time compare, pre-processing)", "Session JWT verification"],
+    "sast_summary": "npm audit -> 12 advisories (2 high); semgrep -> 9 results; gitleaks -> committed dev env file.",
+    "remediation_steps": [
+      {"title": "Authenticate the signing endpoint", "estimate": "2h", "summary": "Close the critical forgery path.", "instructions": ["Add authentication middleware to the sign route.", "Validate every discount against a persisted, approved offer.", "Rotate COUPON_SIGNING_SECRET."]}
+    ]
+  },
+  "findings": [
+    {
+      "id": 1,
+      "title": "Broken Authentication -> Signed-Coupon Forgery",
+      "bug_type": "Broken Authentication",
+      "category": "Auth & Authorization",
+      "severity": "Critical",
+      "cvss3_score": 9.0,
+      "cvss3_vector": "AV:N/AC:L/PR:N/UI:N/S:C/C:N/I:H/A:N",
+      "short_description": "An unauthenticated endpoint signs an attacker-supplied discount token with the real COUPON_SIGNING_SECRET.",
+      "locations": [
+        {"file": "src/routes/coupons.js", "line": 25, "snippet": "router.post('/coupons/sign', signCoupon)"},
+        {"file": "src/services/coupons.js", "line": 27, "snippet": "jwt.sign({ discount: req.body.discount }, process.env.COUPON_SIGNING_SECRET)"}
+      ],
+      "description_repro": [
+        "The checkout accepts a discount only if it is a JWT signed with the coupon secret.",
+        "The sign route has no authentication middleware.",
+        "An attacker submits an arbitrary discount and receives a validly signed token -> free goods."
+      ],
+      "suggested_fix": "Authenticate the caller; validate every discount against a persisted, approved offer; rotate the secret.",
+      "status": "Open"
+    },
+    {
+      "id": 3,
+      "title": "SQL Injection (authenticated) - code-confirmed, NOT reproducible at runtime",
+      "bug_type": "SQL Injection",
+      "category": "Database",
+      "severity": "High",
+      "severity_note": "runtime-mitigated",
+      "code_severity": "High",
+      "effective_severity": "Low-Medium (mitigated)",
+      "cvss3_score": 8.1,
+      "cvss3_vector": "AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:L/A:N",
+      "short_description": "Three search endpoints interpolate a user-supplied term into a raw LIKE clause.",
+      "locations": [
+        {"file": "src/repositories/tags.js", "line": 22, "snippet": "db.query(`SELECT * FROM tags WHERE LOWER(value) LIKE '%${term}%'`)"}
+      ],
+      "description_repro": "Sources are validated only as a 2-255 character string with no character filtering; in source, a crafted term would escape the LIKE string.",
+      "verification_note": "Runtime: no payload executed; a lone quote returned 200 not a 500, so the quote does not reach the database unescaped in the deployed path. A WAF in front of the app is the likely neutralizer. Fix as defense-in-depth.",
+      "suggested_fix": "Bind parameters and escape LIKE metacharacters on all three sinks; audit every raw query.",
+      "status": "Open"
+    }
+  ]
+}

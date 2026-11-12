@@ -43,13 +43,20 @@ To try it without installing: `claude --plugin-dir ./plugins/whitehat`.
 | `/whitehat:sast-triage` | Runs Semgrep (and CodeQL if present) and triages each result | `.whitehat/sast/` |
 | `/whitehat:verify <id>` | A skeptic subagent tries to disprove a finding, and confirms it only with a failing test or an in-scope request | updates the finding |
 | `/whitehat:pentest-recon <url>` | Maps the attack surface of a running app inside scope, no payloads | `.whitehat/surface.md` |
-| `/whitehat:report` | Builds a report from confirmed findings only | `.whitehat/report.md` |
+| `/whitehat:audit [path] [url]` | Full audit in one run: scope note, parallel region and domain auditors, coverage critic, scanners, skeptic verification of every candidate, report | all of the above |
+| `/whitehat:report` | Narrative report of confirmed and needs-validation findings, plus a detailed technical report, an issue-tracker TSV and an executive summary generated deterministically from `findings.json` | `.whitehat/report.md`, `.whitehat/report/` |
 
 A finding moves `candidate -> confirmed | rejected`. Only `/whitehat:verify` can confirm a finding, and only with evidence it produced. The format is in [`templates/finding.md`](plugins/whitehat/templates/finding.md).
 
 ## Typical flows
 
-**Code audit**
+**Code audit, one command**
+
+```text
+/whitehat:audit
+```
+
+**Code audit, step by step**
 
 ```text
 /whitehat:recon
@@ -72,6 +79,14 @@ docker run --rm -p 127.0.0.1:3000:3000 bkimminich/juice-shop
 ```
 
 **Developer gate.** Install the plugin and keep working. When the agent writes code that matches a rule, it receives the finding right away. Missing scanners, failed processes, malformed reports and Semgrep-reported errors remain pending rather than counting as clean scans. Only a complete successful rescan with no findings clears the file. The Stop hook blocks once to request action; use a required CI check for merge enforcement.
+
+## Findings and verdicts
+
+A finding moves `candidate -> confirmed | needs-validation | rejected`. `needs-validation` means the code supports the claim but the deciding fact (a proxy, WAF, identity provider or deployed config) is not in the repo, or there is no in-scope target to test against. It is reported separately, with the missing fact named. Every finding names the lower-trust principal, the input they control, the control that should stop it, and the concrete result.
+
+The audit workflow uses the checklists in [`references/`](plugins/whitehat/references): eleven areas of web app checks, a sources-and-sinks guide for taint tracing, scanner instructions, and rules for runtime checks.
+
+Report generation needs Python 3 (standard library only). [`examples/standalone-audit-prompt.md`](examples/standalone-audit-prompt.md) contains the same audit method as a single prompt, for harnesses without plugin support.
 
 ## Configuration
 
@@ -99,6 +114,7 @@ Read this before relying on it:
 
 ```bash
 npm test                                  # hook unit tests (node --test)
+(cd plugins/whitehat/scripts && python3 -m unittest discover -s tests)   # report generator tests
 claude plugin validate .                  # marketplace + plugin manifests
 claude --plugin-dir ./plugins/whitehat    # load it locally
 ```

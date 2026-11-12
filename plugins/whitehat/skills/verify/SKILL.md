@@ -4,6 +4,7 @@ description: Try to disprove a candidate finding, then confirm it only with repr
 argument-hint: "<finding id or file, e.g. F-003>"
 context: fork
 agent: skeptic
+allowed-tools: Read, Grep, Glob
 ---
 
 # Verify a finding
@@ -21,5 +22,6 @@ Your job is to prove the finding wrong. Confirm it only if you fail.
 4. Update the finding file:
    - `confirmed`: evidence section holds the command or test and its real output, severity is set, and a fix plus regression test are proposed.
    - `rejected`: the reason, with `file:line`.
+   - `needs-validation`: the code supports the claim but the deciding fact is outside the repo (proxy, WAF, identity provider, deployed config) or no in-scope target exists. Name the fact and a safe owner-side check.
    - leave `candidate` if you could not decide, and say what is missing.
 5. Reply with the new status and one line of justification.

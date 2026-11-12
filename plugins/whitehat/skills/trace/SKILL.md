@@ -2,6 +2,7 @@
 name: trace
 description: Trace untrusted input from one entry point (or to one sink class) through the code and record candidate findings in .whitehat/findings/. Use after recon, for a specific route, hotspot or vulnerability class.
 argument-hint: "<entry point, hotspot or vuln class, e.g. 'POST /rest/user/login' or 'sql'>"
+allowed-tools: Read, Grep, Glob
 ---
 
 # Source-to-sink trace
