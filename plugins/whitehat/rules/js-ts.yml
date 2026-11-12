@@ -1,0 +1,111 @@
+rules:
+  - id: sql-built-from-string
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      SQL text is built with string interpolation or concatenation. If any part comes from a request,
+      this is SQL injection. Use bound parameters (replacements/bind) instead.
+    metadata: { cwe: "CWE-89" }
+    pattern-either:
+      - pattern: $DB.query(`...${$X}...`, ...)
+      - pattern: $DB.query("..." + $X + ..., ...)
+      - pattern: $DB.query($A + $X, ...)
+
+  - id: shell-command-from-variable
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      A shell command is built from a non-constant value. Use execFile/spawn with an argument array
+      and no shell.
+    metadata: { cwe: "CWE-78" }
+    pattern-either:
+      - pattern: $CP.exec(`...${$X}...`, ...)
+      - pattern: $CP.execSync(`...${$X}...`, ...)
+      - pattern: $CP.exec("..." + $X, ...)
+      - pattern: $CP.execSync("..." + $X, ...)
+
+  - id: dynamic-code-evaluation
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: Code is evaluated from a non-constant string. If an attacker can influence it, this is remote code execution.
+    metadata: { cwe: "CWE-95" }
+    pattern-either:
+      - pattern: eval($X)
+      - pattern: new Function(..., $X)
+      - pattern: $VM.runInNewContext($X, ...)
+      - pattern: $VM.runInContext($X, ...)
+      - pattern: $SAFE.eval($X, ...)
+    pattern-not: eval("...")
+
+  - id: redirect-from-request
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      Redirect target comes from the request. Check it against an exact allowlist (not substring
+      matching) or this is an open redirect.
+    metadata: { cwe: "CWE-601" }
+    pattern-either:
+      - pattern: $RES.redirect($REQ.query.$P)
+      - pattern: $RES.redirect($REQ.body.$P)
+      - pattern: $RES.redirect($REQ.params.$P)
+
+  - id: file-path-from-request
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: >-
+      A filesystem path is built from request data. Resolve it and check it stays inside the
+      intended directory, or this is path traversal.
+    metadata: { cwe: "CWE-22" }
+    pattern-either:
+      - pattern: $RES.sendFile(<... $REQ.params ...>, ...)
+      - pattern: $RES.sendFile(<... $REQ.query ...>, ...)
+      - pattern: $FS.readFile(<... $REQ.params ...>, ...)
+      - pattern: $FS.readFileSync(<... $REQ.query ...>, ...)
+      - pattern: $FS.readFileSync(<... $REQ.params ...>, ...)
+
+  - id: nosql-where-from-string
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: A MongoDB $where clause is built from a string. $where runs JavaScript on the server; avoid it or never put input in it.
+    metadata: { cwe: "CWE-943" }
+    pattern-either:
+      - pattern: |
+          { $where: `...${$X}...` }
+      - pattern: |
+          { $where: "..." + $X + ... }
+
+  - id: angular-sanitizer-bypass
+    languages: [typescript]
+    severity: WARNING
+    message: >-
+      Angular's sanitizer is bypassed. If the value can contain user content, this is XSS.
+      Prefer normal binding and let Angular sanitize.
+    metadata: { cwe: "CWE-79" }
+    pattern-either:
+      - pattern: $S.bypassSecurityTrustHtml($X)
+      - pattern: $S.bypassSecurityTrustScript($X)
+      - pattern: $S.bypassSecurityTrustResourceUrl($X)
+
+  - id: raw-html-sink
+    languages: [javascript, typescript]
+    severity: WARNING
+    message: A value is written to a raw HTML sink. If it can contain user content, this is XSS.
+    metadata: { cwe: "CWE-79" }
+    pattern-either:
+      - pattern: $EL.innerHTML = $X
+      - pattern: $EL.outerHTML = $X
+      - pattern: document.write($X)
+    pattern-not: $EL.innerHTML = "..."
+
+  - id: jwt-hardcoded-or-none
+    languages: [javascript, typescript]
+    severity: ERROR
+    message: >-
+      A JWT is signed or verified with a literal secret, or 'none' is an accepted algorithm.
+      Load keys from configuration and pin the algorithms list.
+    metadata: { cwe: "CWE-798" }
+    pattern-either:
+      - pattern: $JWT.sign($P, "...", ...)
+      - pattern: $JWT.verify($T, "...", ...)
+      - pattern: |
+          $JWT.verify($T, $K, {..., algorithms: [..., "none", ...], ...}, ...)

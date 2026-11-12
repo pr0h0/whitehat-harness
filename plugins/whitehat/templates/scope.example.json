@@ -1,0 +1,11 @@
+{
+  "engagement": "juice-shop-local",
+  "authorizedBy": "me, on my own machine",
+  "expires": "2026-12-31",
+  "hosts": ["localhost:3000", "127.0.0.1:3000"],
+  "rules": [
+    "no denial-of-service or load testing",
+    "no brute force beyond 20 requests per minute",
+    "stop and ask before any action that changes data you did not create"
+  ]
+}

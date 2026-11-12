@@ -1,0 +1,14 @@
+{
+  "name": "whitehat-harness",
+  "owner": {
+    "name": "HackyJS"
+  },
+  "plugins": [
+    {
+      "name": "whitehat",
+      "source": "./plugins/whitehat",
+      "description": "Scope guard, edit-time security gate, and audit/pentest skills for authorized security work."
+    }
+  ],
+  "description": "Claude Code plugins for authorized security work: scope guard, edit-time security gate, audit and pentest skills."
+}

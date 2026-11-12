@@ -1,0 +1,10 @@
+{
+  "name": "whitehat",
+  "version": "0.1.0",
+  "description": "Authorized security work with Claude Code: engagement scope guard, edit-time security gate, and audit/pentest skills that produce evidence-backed findings.",
+  "author": { "name": "HackyJS" },
+  "homepage": "https://github.com/pr0h0/whitehat-harness",
+  "repository": "https://github.com/pr0h0/whitehat-harness",
+  "license": "MIT",
+  "keywords": ["security", "appsec", "code-audit", "pentest", "hooks", "semgrep"]
+}
