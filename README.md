@@ -5,7 +5,7 @@ A Claude Code plugin for **authorized** security work: code audits, pentests of 
 It does three things:
 
 1. **Scope guard.** A `PreToolUse` hook denies Bash, WebFetch and MCP calls aimed at hosts outside your engagement scope, and logs every network action to `.whitehat/audit.jsonl`.
-2. **Edit gate.** A `PostToolUse` hook runs Semgrep (bundled rules) and gitleaks on every file the agent writes, and feeds the findings back to the agent. A `Stop` hook keeps the turn open until the agent fixes each finding or explains why it is a false positive.
+2. **Edit gate.** A `PostToolUse` hook runs Semgrep (bundled rules) and gitleaks on every file the agent writes, and feeds the findings back to the agent. A `Stop` hook blocks completion once to request fixes or explanations; it does not enforce a protected merge.
 3. **Audit and pentest skills.** Seven skills turn a security review into repeatable steps that write files you can diff, review and report on, instead of chat history.
 
 ## Install
@@ -24,7 +24,7 @@ claude plugin marketplace add pr0h0/whitehat-harness
 claude plugin install whitehat@whitehat-harness --scope project
 ```
 
-Optional but recommended (the edit gate only checks for secrets without Semgrep):
+Install both scanners before relying on the edit gate (a missing scanner is reported as a failed check):
 
 ```bash
 pipx install semgrep          # or: pip install semgrep
@@ -71,7 +71,7 @@ docker run --rm -p 127.0.0.1:3000:3000 bkimminich/juice-shop
 /whitehat:verify F-001
 ```
 
-**Developer gate.** Install the plugin and keep working. When the agent writes code that matches a rule, it sees the finding right away and has to deal with it before it finishes.
+**Developer gate.** Install the plugin and keep working. When the agent writes code that matches a rule, it receives the finding right away. Missing scanners, failed processes, malformed reports and Semgrep-reported errors remain pending rather than counting as clean scans. Only a complete successful rescan with no findings clears the file. The Stop hook blocks once to request action; use a required CI check for merge enforcement.
 
 ## Configuration
 

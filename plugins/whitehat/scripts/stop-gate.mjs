@@ -8,11 +8,11 @@ export const decide = (input, state) => {
   // only this session's findings: an old, accepted finding must not hold every future turn open
   const files = Object.entries(state.pending ?? {})
     .filter(([, v]) => v.session === input.session_id)
-    .map(([f, v]) => [f, v.count]);
+    .map(([f, v]) => [f, v.count, v.errors?.length ?? 0]);
   if (!files.length) return null;
   return {
     decision: "block",
-    reason: `whitehat: unresolved security findings in ${files.map(([f, n]) => `${f} (${n})`).join(", ")}. Fix them, or for each one say why it is a false positive, then finish.`,
+    reason: `whitehat: unresolved security findings in ${files.map(([f, n, e]) => `${f} (${n} finding(s)${e ? `, ${e} failed check(s)` : ""})`).join(", ")}. Restore and rerun failed scanners. Fix findings, or for each one say why it is a false positive, then finish.`,
   };
 };
 
