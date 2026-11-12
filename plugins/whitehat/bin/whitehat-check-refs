@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Check that every file:line reference in a report points at a real file and line.
+# Usage: whitehat-check-refs <report.md> [repo root]
+# It proves the reference exists, not that the claim about it is true. Read the lines too.
+set -uo pipefail
+report=${1:?report file}; root=${2:-.}
+ok=0; bad=0
+while read -r ref; do
+  file=${ref%:*}; line=${ref##*:}; line=${line%%-*}
+  path="$root/$file"
+  if [[ ! -f "$path" ]]; then
+    # bare names like insecurity.ts: accept only if exactly one file matches
+    matches=$(find "$root" -path "$root/node_modules" -prune -o -type f -name "$(basename "$file")" -print | head -2)
+    n=$(printf '%s\n' "$matches" | grep -c .)
+    if (( n == 0 )); then echo "NOT FOUND    $ref"; ((bad++)); continue; fi
+    if (( n > 1 )); then echo "AMBIGUOUS    $ref (give the full path)"; ((bad++)); continue; fi
+    path=$matches
+  fi
+  if (( $(wc -l < "$path") < line )); then echo "PAST EOF     $ref"; ((bad++)); else ((ok++)); fi
+done < <(grep -oE '[A-Za-z0-9_./-]+\.[A-Za-z]{1,5}:[0-9]+(-[0-9]+)?' "$report" | sort -u)
+echo "$ok references resolve, $bad do not"
+(( bad == 0 ))
